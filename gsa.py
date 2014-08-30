@@ -8,6 +8,7 @@ class GSA():
     def __init__(self):
         self.chromosomeSize = 10
         self.population = list()
+        self.generation = 0
         print "Hello World"        
 
     def SinglePointCrossover(self, A, B, r, Pc = random.random()):
@@ -20,6 +21,7 @@ class GSA():
             Bprime = B[:point] + A[point:]
             self.population.append(Aprime)
             self.population.append(Bprime)
+            self.generation += 1
         return True, Aprime, Bprime
 
     def TwoPointCrossover(self, A, B, r, Pc=random.random()):
@@ -32,6 +34,7 @@ class GSA():
             Bprime = B[:point1] + A[point1:point2] + B[point2:]
             self.population.append(Aprime)
             self.population.append(Bprime)
+            self.generation += 1
         return True, Aprime, Bprime
 
     def UniformCrossover(self, A, B, r, Pc=random.random()):
@@ -51,11 +54,12 @@ class GSA():
                 else:
                     offspring.append(B[i])
             self.population.append(offspring)
+            self.generation += 1
         return True, offspring
 
     def Mutation(self, chromosome, r, Pm = random.random()):
         if r < Pm:
-            return True, chromosome
+            return False, chromosome
         else:
             mutation = random.sample(self.genes, 1)
             pos = random.randint(0, (len(chromosome)-1))
@@ -115,7 +119,6 @@ urls = sc.getLinks()
 urlDict = dict()
 for i in range(len(urls)):
     urlDict[i] = i
-    print urlDict[i], " : ", urls[i]
 gsa.genes = urlDict.keys()
 gsa.InitialisePopulation()
 ITERATIONS = 50
