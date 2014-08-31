@@ -201,5 +201,5 @@ priorityUrls = list()
 for gene in priorityGenes:
     priorityUrls.append(urlDict[gene])
 
-for i in len(priorityUrls):
+for i in range(len(priorityUrls)):
     print priorityUrls[i], ", Rank :", i+1
