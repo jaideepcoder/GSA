@@ -61,13 +61,14 @@ class GSA():
         if r < Pm:
             return False, chromosome
         else:
-            mutation = random.sample(self.genes, 1)
+            mutation = random.sample(self.genes, 1)[0]
             pos = random.randint(0, (len(chromosome)-1))
-            offspring = chromosome
+            offspring = chromosome[:]
             offspring[pos] = mutation
-            print r, Pm, mutation, pos, offspring
+            print r, Pm, mutation, pos, offspring, self.ChromosomeInPopulation(offspring)
             if not self.ChromosomeInPopulation(offspring):
                 self.population.append(offspring)
+                print self.population
             return True, offspring
 
     def RWSelection(self, wheel):
@@ -114,19 +115,25 @@ class GSA():
 
 gsa = GSA()
 
-sc = Scrapper("Neural Networks", 50)
-urls = sc.getLinks()
+sc = Scrapper(str(input("Enter search query: ")), 50)
+urls = set(sc.getLinks())
 urlDict = dict()
-for i in range(len(urls)):
-    urlDict[i] = i
+for index, url in enumerate(urls):
+    urlDict[index] = url
 gsa.genes = urlDict.keys()
-gsa.InitialisePopulation()
+featureDict = dict()
+
+for key, value in urlDict.iteritems():
+    featureDict[key] = sc.getFeatures(value)
+
+
+"""gsa.InitialisePopulation()
 ITERATIONS = 50
 for i in range(ITERATIONS):
     chromosome = gsa.population[random.randint(0, len(gsa.population)-1)]
     r = random.random()
     check, offspring = gsa.Mutation(chromosome, r, Pm=0)
-print gsa.population
+print gsa.population"""
     
-    
+
 
