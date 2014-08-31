@@ -9,6 +9,13 @@ class GSA():
         self.chromosomeSize = 10
         self.population = list()
         self.generation = 0
+        self.bounceRate = dict()
+        self.pageView = dict()
+        self.time = dict()
+        self.searchVisit = dict()
+        self.linkIn = dict()
+        self.genes = list()
+        self.geneQuality = dict()
         print "Hello World"        
 
     def SinglePointCrossover(self, A, B, r, Pc = random.random()):
@@ -101,11 +108,23 @@ class GSA():
     def Selection(self):
         raise NotImplemented
 
-    def CalculateCachedLinkQuality(self):
-        raise NotImplemented
+    def CalculateCachedLinkQuality(gene, weights = [1]*5):
+        if gene not in self.geneQuality.keys():
+            quality = weight[0]*self.bounceRate + weight[1]*self.pageView + weight[2]*self.time + weight[3]*self.searchVisit + weight[4]*self.linkIn
+            self.geneQuality[gene] = quality
+            return quality
+        else:
+            return self.geneQuality[gene]
 
-    def NormalizeFeature(self, range):
-        raise NotImplemented
+    def NormalizeFeature(self, feature):
+        featureValues = feature.values()
+        MAX = max(featureValues)
+        MIN = min(featureValues)
+        range = MAX - MIN
+        mean = sum(featureValues)/len(featureValues)
+        for key, value in feature.iteritems():
+            feature[key] = (value-mean)/range
+        return feature
 
     def Plot(self):
         raise NotImplemented
@@ -115,16 +134,29 @@ class GSA():
 
 gsa = GSA()
 
-sc = Scrapper(str(input("Enter search query: ")), 50)
+sc = Scrapper(str(input("Enter search query: ")), 20)
 urls = set(sc.getLinks())
 urlDict = dict()
 for index, url in enumerate(urls):
     urlDict[index] = url
 gsa.genes = urlDict.keys()
-featureDict = dict()
+
 
 for key, value in urlDict.iteritems():
-    featureDict[key] = sc.getFeatures(value)
+    features = sc.getFeatures(value)
+    gsa.bounceRate[key] = features[0]
+    gsa.pageView[key] = features[1]
+    gsa.time[key] = features[2]
+    gsa.searchVisit[key] = features[3]
+    gsa.linkIn[key] = features[4]
+
+print gsa.bounceRate
+
+gsa.bounceRate = gsa.NormalizeFeature(gsa.bounceRate)
+gsa.pageView = gsa.NormalizeFeature(gsa.pageView)
+gsa.time = gsa.NormalizeFeature(gsa.time)
+gsa.searchVisit = gsa.NormalizeFeature(gsa.searchVisit)
+gsa.linkIn = gsa.NormalizeFeature(gsa.linkIn)
 
 
 """gsa.InitialisePopulation()

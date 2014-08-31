@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+from time import sleep
 import re, urllib
 
 
@@ -36,30 +37,39 @@ class Scrapper():
         return cleanUrls
 
     def getFeatures(self, url):
+        sleep(.1)
         url = urllib.quote_plus(url)
         r = requests.get(self.baseUrlFeature+url)
         content = r.content
 
         soup = BeautifulSoup(content)
         html = soup.find_all('strong', {'class':'metrics-data align-vmiddle'})
+        check = False
         features = list()
         for data in html:
             text = data.text
             if '%' in text:
                 text = float(text[:-1])
+                check = True
+                features.append(text)
             elif '.' in text:
                 text = float(text)
+                features.append(text)
             elif ':' in text:
                 time = text.split(':')
                 for i in range(len(time)): time[i] = int(time[i])
                 if len(time) == 3: text = time[0]*3600 + time[1]*60 + time[2]
                 elif len(time) == 2: text = time[0]*60 + time[1]
                 elif len(time) == 1: text = time[0]
+                features.append(text)
             elif '-' in text:
                 text = 0
-            else: text = int(text.replace(',', ''))
-            features.append(text)
+                features.append(text)
+            else:
+                if check:
+                    print check, text
+                    text = int(text.replace(',', ''))
+                    features.append(text)
         html = soup.find_all('span', {'class':'font-4'})[0]
         features.append(int(str(html.text).replace(',', '')))
         return features
-    
