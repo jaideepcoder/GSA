@@ -16,6 +16,7 @@ class GSA():
         self.linkIn = dict()
         self.genes = list()
         self.geneQuality = dict()
+        self.fitness = dict()
         print "Hello World"        
 
     def SinglePointCrossover(self, A, B, r, Pc = random.random()):
@@ -26,6 +27,8 @@ class GSA():
             point = random.randint(0, size-1)
             Aprime = A[:point] + B[point:]
             Bprime = B[:point] + A[point:]
+            Aprime = self.OptimizeChromosome(Aprime)
+            Bprime = self.OptimizeChromosome(Bprime)
             self.population.append(Aprime)
             self.population.append(Bprime)
             self.generation += 1
@@ -39,6 +42,8 @@ class GSA():
             point2 = random.randint(0, size-1)
             Aprime = A[:point1] + B[point1:point2] + A[point2:]
             Bprime = B[:point1] + A[point1:point2] + B[point2:]
+            Aprime = self.OptimizeChromosome(Aprime)
+            Bprime = self.OptimizeChromosome(Bprime)
             self.population.append(Aprime)
             self.population.append(Bprime)
             self.generation += 1
@@ -60,6 +65,7 @@ class GSA():
                     offspring.append(A[i])
                 else:
                     offspring.append(B[i])
+            offspring = self.OptimizeChromosome(offspring)
             self.population.append(offspring)
             self.generation += 1
         return True, offspring
@@ -72,10 +78,8 @@ class GSA():
             pos = random.randint(0, (len(chromosome)-1))
             offspring = chromosome[:]
             offspring[pos] = mutation
-            print r, Pm, mutation, pos, offspring, self.ChromosomeInPopulation(offspring)
-            if not self.ChromosomeInPopulation(offspring):
-                self.population.append(offspring)
-                print self.population
+            offspring = self.OptimizeChromosome(offspring)
+            self.population.append(offspring)
             return True, offspring
 
     def RWSelection(self, wheel):
@@ -86,18 +90,18 @@ class GSA():
         """The process that determines which solutions are to be preserved and allowed to reproduce and which ones deserve to die out."""
         raise NotImplemented
 
-    def CalculateFitness(self, chromosome, weights=[1]*10):
+    def CalculateFitness(self, chromosome, weight=[1]*10):
         sum = 0
         for index, gene in enumerate(chromosome):
-            sum += weigths[i]*self.CalculateCachedLinkQuality(gene)
+            sum += weight[index]*self.CalculateCachedLinkQuality(gene)
         return sum
             
 
     def InitialisePopulation(self):
-        chromosome = random.sample(self.genes, self.chromosomeSize)
-        if not self.ChromosomeInPopulation(chromosome):
-            self.population.append(chromosome)
-        return 0
+        for i in range(10):
+            chromosome = self.OptimizeChromosome(random.sample(self.genes, self.chromosomeSize))
+            if not self.ChromosomeInPopulation(chromosome):
+                self.population.append(chromosome)
 
     def ChromosomeInPopulation(self, chromosome):
         if chromosome in self.population:
@@ -108,9 +112,9 @@ class GSA():
     def Selection(self):
         raise NotImplemented
 
-    def CalculateCachedLinkQuality(gene, weights = [1]*5):
+    def CalculateCachedLinkQuality(self, gene, weight = [1]*5):
         if gene not in self.geneQuality.keys():
-            quality = weight[0]*self.bounceRate + weight[1]*self.pageView + weight[2]*self.time + weight[3]*self.searchVisit + weight[4]*self.linkIn
+            quality = weight[0]*self.bounceRate[gene] + weight[1]*self.pageView[gene] + weight[2]*self.time[gene] + weight[3]*self.searchVisit[gene] + weight[4]*self.linkIn[gene]
             self.geneQuality[gene] = quality
             return quality
         else:
@@ -125,6 +129,12 @@ class GSA():
         for key, value in feature.iteritems():
             feature[key] = (value-mean)/range
         return feature
+
+    def OptimizeChromosome(self, chromosome):
+        chromosomeQuality = dict()
+        for gene in chromosome:
+            chromosomeQuality[gene] = self.CalculateCachedLinkQuality(gene)
+        return sorted(chromosomeQuality, key=chromosomeQuality.get, reverse = True)
 
     def Plot(self):
         raise NotImplemented
@@ -150,8 +160,6 @@ for key, value in urlDict.iteritems():
     gsa.searchVisit[key] = features[3]
     gsa.linkIn[key] = features[4]
 
-print gsa.bounceRate
-
 gsa.bounceRate = gsa.NormalizeFeature(gsa.bounceRate)
 gsa.pageView = gsa.NormalizeFeature(gsa.pageView)
 gsa.time = gsa.NormalizeFeature(gsa.time)
@@ -159,13 +167,39 @@ gsa.searchVisit = gsa.NormalizeFeature(gsa.searchVisit)
 gsa.linkIn = gsa.NormalizeFeature(gsa.linkIn)
 
 
-"""gsa.InitialisePopulation()
-ITERATIONS = 50
-for i in range(ITERATIONS):
+gsa.InitialisePopulation()
+
+
+for i in range(50):
+    print "Iteration: ", i+1
+
+    gsa.fitness = dict()
+    for pos, chromosome in enumerate(gsa.population):
+        gsa.fitness[pos] = gsa.CalculateFitness(chromosome)
+
     chromosome = gsa.population[random.randint(0, len(gsa.population)-1)]
     r = random.random()
-    check, offspring = gsa.Mutation(chromosome, r, Pm=0)
-print gsa.population"""
-    
+    check, offspring = gsa.Mutation(chromosome, r)
+    if check:
+        gsa.fitness[gsa.population.index(offspring)] = gsa.CalculateFitness(offspring)
 
+    chromosomeA = gsa.population[random.randint(0, len(gsa.population)-1)]
+    chromosomeB = gsa.population[random.randint(0, len(gsa.population)-1)]
+    r = random.random()
+    check, A, B = gsa.SinglePointCrossover(chromosomeA, chromosomeB, r)
+    if check:
+        gsa.fitness[gsa.population.index(A)] = gsa.CalculateFitness(A)
+        gsa.fitness[gsa.population.index(B)] = gsa.CalculateFitness(B)
+    index = sorted(gsa.fitness, key = gsa.fitness.get, reverse = True)[:10][:]
+    pop=list()
+    for item in index:
+        pop.append(gsa.population[item])
+    gsa.population = pop[:]
 
+priorityGenes = gsa.population[0]
+priorityUrls = list()
+for gene in priorityGenes:
+    priorityUrls.append(urlDict[gene])
+
+for i in len(priorityUrls):
+    print priorityUrls[i], ", Rank :", i+1
